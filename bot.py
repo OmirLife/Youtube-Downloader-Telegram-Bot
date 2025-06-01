@@ -4,11 +4,20 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
 from yt_dlp import YoutubeDL
+from datetime import datetime
 
 API_TOKEN = '7378664309:AAHc2TeVWSA9pKwtn9QyTkG-ZkQymyPwSbY'  
+ADMIN_ID = 742572547
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
+
+def log_download(user: types.User, format_type: str, title: str, url: str):
+    with open("downloads.log", "a", encoding="utf-8") as f:
+        f.write(f"[{datetime.now()}] {user.full_name} ({user.id}) → {format_type.upper()}\n")
+        f.write(f"Title: {title}\n")
+        f.write(f"URL: {url}\n\n")
+
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
@@ -65,6 +74,12 @@ async def process_download(callback_query: types.CallbackQuery):
 
         # Санитарлық атау
         title = info.get('title', 'video')
+        log_download(callback_query.from_user, format_type, title, url)
+        await bot.send_message(
+            ADMIN_ID,
+            f"📥 {callback_query.from_user.full_name} ({callback_query.from_user.id})\n"
+            f"🎞 {format_type.upper()} — {title}\n🔗 {url}"
+        )
         safe_title = re.sub(r'[\\/*?:"<>|]', "", title)
         original_ext = '.mp3' if format_type == 'mp3' else '.mp4'
         temp_filename = os.path.splitext(base_filename)[0] + original_ext
@@ -80,6 +95,7 @@ async def process_download(callback_query: types.CallbackQuery):
     except Exception as e:
         await bot.send_message(user_id, f"⚠️ Қате болды: {str(e)}")
         print("Error:", e)
+
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
