@@ -5,8 +5,11 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
 from yt_dlp import YoutubeDL
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
-API_TOKEN = '7378664309:AAHc2TeVWSA9pKwtn9QyTkG-ZkQymyPwSbY'  
+API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
 
 bot = Bot(token=API_TOKEN)
