@@ -11,6 +11,7 @@ import os
 import traceback
 from aiogram.dispatcher.webhook import get_new_configured_app
 from aiohttp import web
+from aiogram.utils.exceptions import TelegramAPIError
 
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
@@ -30,6 +31,16 @@ def log_download(user: types.User, format_type: str, title: str, url: str):
         f.write(f"[{datetime.now()}] {user.full_name} ({user.id}) → {format_type.upper()}\n")
         f.write(f"Title: {title}\n")
         f.write(f"URL: {url}\n\n")
+
+
+@dp.errors_handler()
+async def global_error_handler(update, error):
+    print("🔥 Error caught by global handler:", repr(error))
+    return True  # prevents stopping the webhook
+
+@dp.message_handler()
+async def catch_all(message: types.Message):
+    print(f"📥 Received message: {message.text} from {message.from_user.full_name}")
 
 
 @dp.message_handler(commands=['start'])
@@ -112,6 +123,7 @@ async def process_download(callback_query: types.CallbackQuery):
         print("Full Error:\n", error_text)
 
 async def on_startup(app):
+    await bot.delete_webhook()
     await bot.set_webhook(WEBHOOK_URL)
     print(f"[STARTUP] Webhook set to: {WEBHOOK_URL}")
 
@@ -122,6 +134,7 @@ app = web.Application()
 app.router.add_post(WEBHOOK_PATH, dp.process_updates)
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
+
 
 if __name__ == '__main__':
     web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
