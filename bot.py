@@ -34,6 +34,7 @@ def log_download(user: types.User, format_type: str, title: str, url: str):
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
+    print(f"/start command received from {message.from_user.full_name} ({message.from_user.id})")
     await message.reply("👋 Сәлем, маған Youtube сілтемені жібер")
 
 @dp.message_handler(lambda message: "youtube.com" in message.text or "youtu.be" in message.text)
