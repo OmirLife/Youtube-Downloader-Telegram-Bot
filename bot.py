@@ -15,7 +15,7 @@ from aiohttp import web
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
 
-WEBHOOK_HOST = "https://youtube-downloader-telegram-bot-production.up.railway.app"
+WEBHOOK_HOST = "hyoutube-downloader-telegram-bot-production.up.railway.app"
 WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
@@ -121,7 +121,8 @@ async def on_startup(app):
 async def on_shutdown(app):
     await bot.delete_webhook()
 
-app = get_new_configured_app(dispatcher=dp, path=WEBHOOK_PATH)
+app = web.Application()
+app.router.add_post(WEBHOOK_PATH, dp.webhook_handler())
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
 
