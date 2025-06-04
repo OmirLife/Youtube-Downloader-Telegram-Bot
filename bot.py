@@ -46,7 +46,11 @@ async def process_download(callback_query: types.CallbackQuery):
     ydl_opts = {
         'outtmpl': output_template,
         'quiet': True,
-        'noplaylist': True
+        'noplaylist': True,
+        'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept-Language': 'en-US,en;q=0.9',
+        },
     }
 
     if format_type == 'mp3':
