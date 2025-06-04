@@ -8,6 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 import os
+import traceback
 
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
@@ -100,8 +101,9 @@ async def process_download(callback_query: types.CallbackQuery):
         os.remove(final_filename)
 
     except Exception as e:
-        await bot.send_message(user_id, f"⚠️ Қате болды: {str(e)}")
-        print("Error:", e)
+        error_text = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        await bot.send_message(user_id, f"⚠️ Қате болды:\n{str(e)}")
+        print("Full Error:\n", error_text)
 
 
 if __name__ == '__main__':
