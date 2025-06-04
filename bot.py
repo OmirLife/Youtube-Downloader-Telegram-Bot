@@ -3,7 +3,7 @@ import re
 import traceback
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiohttp import web
+from aiogram.utils import executor
 from yt_dlp import YoutubeDL
 from datetime import datetime
 from dotenv import load_dotenv
@@ -13,15 +13,14 @@ load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
 
-WEBHOOK_HOST = "https://youtube-downloader-telegram-bot-production.up.railway.app"
-WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
-
-WEBAPP_HOST = "0.0.0.0"
-WEBAPP_PORT = int(os.getenv("PORT", 3000))
-
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
+
+def log_download(user: types.User, format_type: str, title: str, url: str):
+    with open("downloads.log", "a", encoding="utf-8") as f:
+        f.write(f"[{datetime.now()}] {user.full_name} ({user.id}) → {format_type.upper()}\n")
+        f.write(f"Title: {title}\n")
+        f.write(f"URL: {url}\n\n")
 
 # === Error Handling ===
 @dp.errors_handler()
@@ -32,7 +31,7 @@ async def global_error_handler(update, error):
 # === Catch All (Debug) ===
 @dp.message_handler()
 async def catch_all(message: types.Message):
-    print(f"📥 Message from {message.from_user.full_name}: {message.text}")
+    print(f"📅 Message from {message.from_user.full_name}: {message.text}")
 
 # === /start Handler ===
 @dp.message_handler(commands=["start"])
@@ -105,8 +104,8 @@ async def process_download(callback_query: types.CallbackQuery):
 
         await bot.send_message(
             ADMIN_ID,
-            f"📥 {callback_query.from_user.full_name} ({callback_query.from_user.id})\n"
-            f"🎞 {format_type.upper()} — {title}\n🔗 {url}"
+            f"📅 {callback_query.from_user.full_name} ({callback_query.from_user.id})\n"
+            f"🎮 {format_type.upper()} — {title}\n🔗 {url}"
         )
 
     except Exception as e:
@@ -114,19 +113,5 @@ async def process_download(callback_query: types.CallbackQuery):
         await bot.send_message(user_id, f"⚠️ Қате болды:\n{str(e)}")
         print("Full Error:\n", error_text)
 
-# === Webhook Setup ===
-async def on_startup(app):
-    await bot.delete_webhook()
-    await bot.set_webhook(WEBHOOK_URL)
-    print(f"[STARTUP] Webhook set to: {WEBHOOK_URL}")
-
-async def on_shutdown(app):
-    await bot.delete_webhook()
-
-app = web.Application()
-app.router.add_post(WEBHOOK_PATH, dp.process_updates)
-app.on_startup.append(on_startup)
-app.on_shutdown.append(on_shutdown)
-
 if __name__ == "__main__":
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
+    executor.start_polling(dp, skip_updates=True)
