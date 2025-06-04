@@ -57,11 +57,7 @@ async def process_download(callback_query: types.CallbackQuery):
     ydl_opts = {
         'outtmpl': output_template,
         'quiet': True,
-        'noplaylist': True,
-        'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept-Language': 'en-US,en;q=0.9',
-        },
+        'noplaylist': True
     }
 
     if format_type == 'mp3':
@@ -90,7 +86,7 @@ async def process_download(callback_query: types.CallbackQuery):
             info = ydl.extract_info(url, download=True)
             base_filename = ydl.prepare_filename(info)
 
-        # Санитарлық атау
+        # Intermediate title
         title = info.get('title', 'video')
         log_download(callback_query.from_user, format_type, title, url)
         await bot.send_message(
@@ -103,7 +99,7 @@ async def process_download(callback_query: types.CallbackQuery):
         temp_filename = os.path.splitext(base_filename)[0] + original_ext
         final_filename = f"{safe_title}{original_ext}"
 
-        # Файлды қайта атау
+        # Rename File
         os.rename(temp_filename, final_filename)
 
         await bot.send_chat_action(user_id, types.ChatActions.UPLOAD_DOCUMENT)
