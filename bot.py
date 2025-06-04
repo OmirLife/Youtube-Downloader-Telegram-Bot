@@ -9,9 +9,18 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 import traceback
+from aiogram.dispatcher.webhook import get_new_configured_app
+from aiohttp import web
 
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
+
+WEBHOOK_HOST = "https://youtube-downloader-telegram-bot-production.up.railway.app"
+WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
+WEBAPP_HOST = "0.0.0.0"
+WEBAPP_PORT = int(os.getenv("PORT", 3000))
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -105,6 +114,16 @@ async def process_download(callback_query: types.CallbackQuery):
         await bot.send_message(user_id, f"⚠️ Қате болды:\n{str(e)}")
         print("Full Error:\n", error_text)
 
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
+    print(f"Webhook set to {WEBHOOK_URL}")
+
+async def on_shutdown(app):
+    await bot.delete_webhook()
+
+app = get_new_configured_app(dispatcher=dp, path=WEBHOOK_PATH)
+app.on_startup.append(on_startup)
+app.on_shutdown.append(on_shutdown)
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
