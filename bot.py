@@ -118,7 +118,8 @@ async def on_startup(app):
 async def on_shutdown(app):
     await bot.delete_webhook()
 
-app = get_new_configured_app(dispatcher=dp, path=WEBHOOK_PATH)
+app = web.Application()
+app.router.add_post(WEBHOOK_PATH, dp.process_updates)
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
 
