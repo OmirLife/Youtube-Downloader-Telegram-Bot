@@ -122,7 +122,7 @@ async def on_shutdown(dp):
 
 def main():
     app = web.Application()
-    dp.setup(app)
+    app.router.add_post(WEBHOOK_PATH, dp.handler)
     return app
 
 if __name__ == '__main__':
