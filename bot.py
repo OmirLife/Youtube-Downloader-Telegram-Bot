@@ -3,8 +3,8 @@ import re
 import traceback
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils import executor
 from yt_dlp import YoutubeDL
+from aiohttp import web
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -12,6 +12,10 @@ load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = 742572547
+
+WEBHOOK_HOST = f"https://{os.getenv('WEBHOOK_DOMAIN')}"  # e.g., yourproject.up.railway.app
+WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -22,24 +26,16 @@ def log_download(user: types.User, format_type: str, title: str, url: str):
         f.write(f"Title: {title}\n")
         f.write(f"URL: {url}\n\n")
 
-# === Error Handling ===
 @dp.errors_handler()
 async def global_error_handler(update, error):
-    print("🔥 Error caught by global handler:", repr(error))
+    print("🔥 Error caught:", repr(error))
     return True
 
-# === Catch All (Debug) ===
-@dp.message_handler()
-async def catch_all(message: types.Message):
-    print(f"📅 Message from {message.from_user.full_name}: {message.text}")
-
-# === /start Handler ===
 @dp.message_handler(commands=["start"])
 async def send_welcome(message: types.Message):
     print(f"/start from {message.from_user.full_name} ({message.from_user.id})")
     await message.reply("👋 Сәлем, маған Youtube сілтемені жібер")
 
-# === YouTube Link Handler ===
 @dp.message_handler(lambda m: "youtube.com" in m.text or "youtu.be" in m.text)
 async def handle_youtube_link(message: types.Message):
     link = message.text.strip()
@@ -50,7 +46,6 @@ async def handle_youtube_link(message: types.Message):
     )
     await message.reply("Сізге қай формат керек:", reply_markup=keyboard)
 
-# === Download Handler ===
 @dp.callback_query_handler(lambda c: c.data.startswith("mp3") or c.data.startswith("mp4"))
 async def process_download(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
@@ -96,6 +91,9 @@ async def process_download(callback_query: types.CallbackQuery):
         temp_filename = os.path.splitext(base_filename)[0] + ext
         final_filename = f"{safe_title}{ext}"
 
+        if not os.path.exists(temp_filename):
+            raise FileNotFoundError(f"Downloaded file not found: {temp_filename}")
+
         os.rename(temp_filename, final_filename)
 
         await bot.send_chat_action(user_id, types.ChatActions.UPLOAD_DOCUMENT)
@@ -113,5 +111,20 @@ async def process_download(callback_query: types.CallbackQuery):
         await bot.send_message(user_id, f"⚠️ Қате болды:\n{str(e)}")
         print("Full Error:\n", error_text)
 
-if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+# === Webhook Setup ===
+async def on_startup(dp):
+    print("🚀 Starting bot and setting webhook...")
+    await bot.set_webhook(WEBHOOK_URL)
+
+async def on_shutdown(dp):
+    print("💤 Shutting down bot...")
+    await bot.delete_webhook()
+
+def main():
+    app = web.Application()
+    dp.setup(app)
+    return app
+
+if __name__ == '__main__':
+    app = main()
+    web.run_app(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
